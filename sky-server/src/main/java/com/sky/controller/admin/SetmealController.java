@@ -45,4 +45,12 @@ public class SetmealController {
         setmealService.saveWithDishes(setmealDTO);
         return Result.success();
     }
+
+    @DeleteMapping
+    @ApiOperation("批量删除套餐")
+    public Result deleteBatch(@RequestParam List<Long> ids) {
+        log.info("批量删除套餐：{}",ids);
+        setmealService.deleteBatch(ids);
+        return Result.success();
+    }
 }
