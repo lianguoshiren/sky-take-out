@@ -45,7 +45,7 @@ public class DishServiceImpl implements DishService {
         Long dishId = dish.getId();
         // 向口味表插入n条数据
         List<DishFlavor> flavors = dishDTO.getFlavors();
-        if(flavors != null && flavors.size() > 0) {
+        if(flavors != null && !flavors.isEmpty()) {
             flavors.forEach(dishFlavor -> {
                 dishFlavor.setDishId(dishId);
             });
@@ -144,6 +144,22 @@ public class DishServiceImpl implements DishService {
             dishFlavorMapper.insertBatch(flavors);
         }
 
+    }
+
+    /*
+    * 根据分类ID查找菜品
+    * @param id
+    * @return
+    * */
+    @Override
+    public List<Dish> list(Long id) {
+//        List<Dish> dishes = dishMapper.getByCategoryId(id);
+        Dish dish = Dish.builder()
+                .categoryId(id)
+                .status(StatusConstant.ENABLE)
+                .build();
+        List<Dish> dishes = dishMapper.list(dish);
+        return dishes;
     }
 
 }
