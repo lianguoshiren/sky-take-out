@@ -9,16 +9,20 @@ import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.entity.Setmeal;
 import com.sky.entity.SetmealDish;
 import com.sky.exception.DeletionNotAllowedException;
+import com.sky.exception.SetmealEnableFailedException;
 import com.sky.mapper.SetmealDishMapper;
 import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
+import com.sky.service.DishService;
 import com.sky.service.SetmealService;
+import com.sky.vo.DishVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class SetmealServiceImpl implements SetmealService {
@@ -26,6 +30,8 @@ public class SetmealServiceImpl implements SetmealService {
     private SetmealMapper setmealMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private DishService dishService;
     /*
     * 插入套餐
     * @param setmealDTO
@@ -75,7 +81,7 @@ public class SetmealServiceImpl implements SetmealService {
 //        根据id查找套餐
         for (Long id : ids) {
             Setmeal setmeal = setmealMapper.getById(id);
-            if(setmeal.getStatus() == StatusConstant.ENABLE) {
+            if(Objects.equals(setmeal.getStatus(), StatusConstant.ENABLE)) {
                 throw new DeletionNotAllowedException(MessageConstant.SETMEAL_ON_SALE);
             }
         }
@@ -85,5 +91,39 @@ public class SetmealServiceImpl implements SetmealService {
         if(!ids.isEmpty()) {
             setmealDishMapper.deleteBatchBySetmealId(ids);
         }
+    }
+
+    @Override
+    public void updateById(Long id, Integer status) {
+//        status为0，则直接将套餐的status更新为0
+        if(status == 0) {
+            Setmeal setmeal = Setmeal.builder()
+                    .id(id)
+                    .status(StatusConstant.DISABLE)
+                    .build();
+
+            setmealMapper.update(setmeal);
+        }
+        else {
+//            status为1，查找套餐中是否存在禁售的菜品
+//            在套餐-菜品关联表中获取关联的dishId
+//            查找对应id的状态
+            List<Long> dishIds = setmealDishMapper.getDishIdBySetmealId(id);
+            for (Long did : dishIds) {
+                DishVO byIdWithFlavor = dishService.getByIdWithFlavor(did);
+                if(Objects.equals(byIdWithFlavor.getStatus(), StatusConstant.DISABLE)) {
+                    throw new SetmealEnableFailedException(MessageConstant.SETMEAL_ENABLE_FAILED);
+                }
+
+            }
+            Setmeal setmeal = Setmeal.builder()
+                    .id(id)
+                    .status(StatusConstant.ENABLE)
+                    .build();
+            setmealMapper.update(setmeal);
+
+        }
+
+
     }
 }

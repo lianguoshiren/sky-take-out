@@ -30,4 +30,6 @@ public interface SetmealMapper {
 
     @Select("select * from setmeal where id = #{id}")
     Setmeal getById(Long id);
+
+    void update(Setmeal setmeal);
 }

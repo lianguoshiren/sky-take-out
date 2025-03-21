@@ -5,6 +5,18 @@
         insert into setmeal (category_id, name, price, description, image)
             value (#{categoryId}, #{name}, #{price}, #{description}, #{image})
     </insert>
+    <update id="update">
+        update setmeal
+        <set>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="name != null">name = #{name},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="description != null"> description = #{description},</if>
+            <if test="image != null">image = #{image}</if>
+        </set>
+        where id = #{id}
+    </update>
     <delete id="deleteBatch">
         delete from setmeal where id in
             <foreach collection="ids" item="id" separator="," open="(" close=")">

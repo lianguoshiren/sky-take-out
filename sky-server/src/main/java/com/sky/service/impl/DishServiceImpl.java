@@ -8,10 +8,13 @@ import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.entity.DishFlavor;
+import com.sky.entity.Setmeal;
 import com.sky.exception.DeletionNotAllowedException;
+import com.sky.exception.SetmealEnableFailedException;
 import com.sky.mapper.DishFlavorMapper;
 import com.sky.mapper.DishMapper;
 import com.sky.mapper.SetmealDishMapper;
+import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
 import com.sky.service.DishService;
 import com.sky.vo.DishVO;
@@ -21,6 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -32,6 +37,8 @@ public class DishServiceImpl implements DishService {
     private DishFlavorMapper dishFlavorMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private SetmealMapper setmealMapper;
 
     @Override
     @Transactional
@@ -160,6 +167,38 @@ public class DishServiceImpl implements DishService {
                 .build();
         List<Dish> dishes = dishMapper.list(dish);
         return dishes;
+    }
+
+    @Override
+    public void updateStatus(Long id, Integer status) {
+        if(status == 1) {
+            Dish dish = Dish.builder()
+                    .id(id)
+                    .status(StatusConstant.ENABLE)
+                    .build();
+            dishMapper.update(dish);
+        }
+        else {
+//            在套餐-菜品关联表中存在，则无法禁售
+            List<Long> setmeals = setmealDishMapper.getSetmealIdByDishId(Arrays.asList(id));
+
+            if(!setmeals.isEmpty()) {
+                for (Long sid : setmeals) {
+                    Setmeal byId = setmealMapper.getById(sid);
+                    if(byId.getStatus().equals(StatusConstant.ENABLE)) {
+                        throw new SetmealEnableFailedException(MessageConstant.DISH_BE_RELATED_BY_SETMEAL);
+                    }
+
+                }
+
+            }
+            Dish dish = Dish.builder()
+                    .id(id)
+                    .status(StatusConstant.DISABLE)
+                    .build();
+            dishMapper.update(dish);
+
+        }
     }
 
 }
