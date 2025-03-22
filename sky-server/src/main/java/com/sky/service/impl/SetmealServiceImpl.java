@@ -16,11 +16,13 @@ import com.sky.result.PageResult;
 import com.sky.service.DishService;
 import com.sky.service.SetmealService;
 import com.sky.vo.DishVO;
+import com.sky.vo.SetmealVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -93,6 +95,10 @@ public class SetmealServiceImpl implements SetmealService {
         }
     }
 
+    /*
+    * 根据id和status进行更新
+    * @param id status
+    * */
     @Override
     public void updateById(Long id, Integer status) {
 //        status为0，则直接将套餐的status更新为0
@@ -125,5 +131,37 @@ public class SetmealServiceImpl implements SetmealService {
         }
 
 
+    }
+
+    @Override
+    public SetmealVO getByIdWithDish(Long id) {
+        Setmeal setmeal = setmealMapper.getById(id);
+        SetmealVO setmealVO = new SetmealVO();
+        BeanUtils.copyProperties(setmeal, setmealVO);
+
+        List<SetmealDish> dishIds = setmealDishMapper.getBySetmealId(id);
+        setmealVO.setSetmealDishes(dishIds);
+
+        return setmealVO;
+    }
+
+    @Override
+    public void updateWithDishes(SetmealDTO setmealDTO) {
+        Setmeal setmeal = new Setmeal();
+        BeanUtils.copyProperties(setmealDTO, setmeal);
+        /*if(setmeal.getStatus().equals(StatusConstant.ENABLE)) {
+//            起售中的套餐无法修改
+            throw new SetmealEnableFailedException(MessageConstant.SETMEAL_ON_SALE);
+        }*/
+
+//        先更新setmeal表
+        setmealMapper.update(setmeal);
+
+//        删除原有的套餐-菜品关联数据，重新插入
+        setmealDishMapper.deleteBatchBySetmealId(Arrays.asList(setmeal.getId()));
+        for (SetmealDish setmealDish : setmealDTO.getSetmealDishes()) {
+            setmealDish.setSetmealId(setmealDTO.getId());
+        }
+        setmealDishMapper.insertBatch(setmealDTO.getSetmealDishes());
     }
 }
